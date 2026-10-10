@@ -114,4 +114,38 @@ class Encoder(nn.Module):
         super().__init__()
         self.embedding = nn.Embedding(vocbSize , dModel)
         self.positionalEncoding = positionalEncoding(dModel)
-        
+        self.encoderLayers = nn.ModuleList(
+            [EncoderLayer(dModel , numHeads , dff , dropout) for _ in range(numLayers)] 
+        )
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self , src , srcMask = None):
+        x = self.embedding(src)*math.sqrt(self.embedding.embedding_dim)
+        x = self.positionalEncoding(x)
+        x = self.dropout(x)
+
+        for layer in self.encoderLayers:
+            x = layer(x , srcMask)
+
+        return x
+
+class Decoder(nn.Module):
+    def __init__(self, vocabSize , dModel , numHead , dff, numLayers , dropout = 0.1):
+        super().__init__()
+        self.embeddings = nn.Embedding(dModel , vocabSize)
+        self.positionalEncoding = positionalEncoding(dModel)
+        self.decoderLayers = nn.ModuleList(
+            [DecoderLayer(dModel , numHead , dff , dropout) for _ in range(numLayers)]
+        )
+
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self , tgt , encoderOutput , tgtMask = None):
+        x = self.embeddings(tgt)*math.sqrt(self.embeddings.embedding_dim)
+        x = self.positionalEncoding(x)
+        x = self.dropout(x)
+
+        for layer in self.decoderLayers:
+            x = layer(x , encoderOutput , tgtMask)
+
+        return x
