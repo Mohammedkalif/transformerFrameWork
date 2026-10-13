@@ -157,7 +157,6 @@ def main():
 
     batchSize = 2
     srcLen = 10
-    tgtLen = 7
 
     src = torch.randint(0,srcVocabSize , (batchSize , srcLen))
 
