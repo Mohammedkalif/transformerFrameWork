@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from abc import ABC , abstractmethod
 
-class positionalEncoding(nn.Modules , ABC):
+class positionalEncoding(nn.Module , ABC):
     """
     This class is to implement different tecniques of positional encodings , the encodings that will be implemented in this class is following
     
@@ -24,8 +24,8 @@ class positionalEncoding(nn.Modules , ABC):
 
 
 class SinudoinalPositionalEncoding(positionalEncoding):
-    def __init__(self, dModel, maxLen, dropout):
-        super.__init__(dModel , maxLen , dropout)
+    def __init__(self, dModel, maxLen, dropout=0.1):
+        super().__init__(dModel , maxLen , dropout)
         position = torch.arange(maxLen , dtype=torch.float).unsqueeze(1)
         divTerm = torch.exp(torch.arange(0 , dModel , 2).float()*(-math.log(10000.0) / dModel))
 
@@ -36,10 +36,10 @@ class SinudoinalPositionalEncoding(positionalEncoding):
         self.register_buffer("pe" , pe)
     def forward(self, x):
        x = x+self.pe[:x.size(0)]
-       return self.dropOut(x)
+       return self.dropout(x)
 
     
-class LearnedPositionalEncodig(positionalEncoding , nn.Module):
+class LearnedPositionalEncodig(positionalEncoding):
     def __init__(self, dModel, maxLen, dropout=0.1):
         super().__init__(dModel, maxLen, dropout)
 
@@ -48,7 +48,7 @@ class LearnedPositionalEncodig(positionalEncoding , nn.Module):
         seqLen = x.size(0)
         positions = torch.arange(seqLen , device=x.device)
 
-        positions = positions.unsqueeze(1)
-        x = x+positions
+        posEmbeddings = self.positionalEmbedding(positions).unsqueeze(1)
+        x = x+posEmbeddings
 
         return self.dropout(x)
