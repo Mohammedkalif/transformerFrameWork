@@ -1,25 +1,54 @@
 import math
 import torch
 import torch.nn as nn
-from abc import ABC , abstractclassmethod
+from abc import ABC , abstractmethod
 
-class positionalEncoding(ABC):
+class positionalEncoding(nn.Modules , ABC):
     """
     This class is to implement different tecniques of positional encodings , the encodings that will be implemented in this class is following
     
     ->Sinudoidal positional encoding
     ->Leared positional encoding
-    ->Rotatory positional embedding (RoPE)
-    ->Relative positional encoding
     """
-    def __init__(self):
+    def __init__(self, dModel, maxLen, dropout=0.1):
         super().__init__()
 
-    @abstractclassmethod
-    def forward(self ,  query , value , key , mask = None):
+        self.dModel = dModel
+        self.maxLen = maxLen
+        self.dropout = nn.Dropout(dropout)
+
+    @abstractmethod
+    def forward(self , x):
         pass
 
 
-class SinudoinalPositionalEncoding(positionalEncoding , nn.Module):
-    def forward(self, query, value, key, mask=None):
-       pass
+
+class SinudoinalPositionalEncoding(positionalEncoding):
+    def __init__(self, dModel, maxLen, dropout):
+        super.__init__(dModel , maxLen , dropout)
+        position = torch.arange(maxLen , dtype=torch.float).unsqueeze(1)
+        divTerm = torch.exp(torch.arange(0 , dModel , 2).float()*(-math.log(10000.0) / dModel))
+
+        pe = torch.zeros(maxLen , 1 , dModel)
+        pe[: , 0 , 0::2] = torch.sin(position*divTerm)
+        pe[: , 0 , 1::2] = torch.cos(position*divTerm)
+
+        self.register_buffer("pe" , pe)
+    def forward(self, x):
+       x = x+self.pe[:x.size(0)]
+       return self.dropOut(x)
+
+    
+class LearnedPositionalEncodig(positionalEncoding , nn.Module):
+    def __init__(self, dModel, maxLen, dropout=0.1):
+        super().__init__(dModel, maxLen, dropout)
+
+        self.positionalEmbedding = nn.Embedding(maxLen , dModel)
+    def forward(self,x):
+        seqLen = x.size(0)
+        positions = torch.arange(seqLen , device=x.device)
+
+        positions = positions.unsqueeze(1)
+        x = x+positions
+
+        return self.dropout(x)
